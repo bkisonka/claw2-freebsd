@@ -1,0 +1,40 @@
+[
+{ type: install
+  message: <<EOM
+claw2 is installed.
+
+1. Copy the configuration and edit it:
+     cp %%PREFIX%%/etc/claw2/claw2.yaml.sample %%PREFIX%%/etc/claw2/claw2.yaml
+   The service makes the file its own when it starts: the web interface
+   saves its settings into it.
+
+2. Put the keys where the service reads them — as root, nobody else needs
+   access (the service hands them to the gateway in its environment):
+     cp %%PREFIX%%/etc/claw2/claw2.env.sample %%PREFIX%%/etc/claw2/claw2.env
+     chmod 600 %%PREFIX%%/etc/claw2/claw2.env
+         OPENAI_API_KEY=sk-...                 (the model provider key)
+         CLAW2_GATEWAY_API_KEY=<openssl rand -hex 24>
+
+3. Enable and start the service:
+     sysrc claw2_enable=YES
+     service claw2 start
+
+The interface is at http://<this host>:3000 and asks for the gateway key.
+The log is /var/log/claw2.log.
+
+Skills run in the soft sandbox (no Docker on FreeBSD): the Node.js
+permission model plus the egress guard.
+EOM
+}
+{ type: remove
+  message: <<EOM
+claw2 is removed. What was never the package's stays — for a reinstall, or
+to delete by hand:
+     %%PREFIX%%/etc/claw2/claw2.yaml, claw2.env   the configuration and the keys
+     %%PREFIX%%/share/claw2                       the chats (data/) and the files
+                                                 of the skills, if there are any
+     /var/log/claw2.log, claw2_enable in /etc/rc.conf
+     the account:  pw userdel claw2; pw groupdel claw2
+EOM
+}
+]

@@ -1,0 +1,62 @@
+# Configuration of the claw2 gateway for FreeBSD — a host or a jail, without
+# Docker. Copy it to claw2.yaml next to this file and edit. Secrets are never
+# written here: `env:NAME` takes the value from the environment (the message
+# printed after the package is installed says where it comes from).
+
+llm:
+  provider: openai          # any OpenAI-compatible endpoint
+  model: gpt-4o-mini
+  apiKey: env:OPENAI_API_KEY
+  # baseURL: https://api.openai.com/v1
+
+gateway:
+  port: 3000
+  # Chats: local SQLite. Paths are relative to the application directory —
+  # the service runs there and keeps its state there.
+  chatsDbPath: ./data/claw2_chats.sqlite
+  # API key auth: the web interface and the API ask for the key. Keep it on
+  # whenever the port is reachable from other machines.
+  auth:
+    enabled: true
+    apiKey: env:CLAW2_GATEWAY_API_KEY
+
+memory:
+  enabled: false
+
+agentsDir: ./agents
+
+orchestrator:
+  cacheStorePath: ./data/claw-cache
+
+# Only these skills are executable by the agent; confirm a new one in the
+# chat with /allow <name>.js.
+skills:
+  allowlist:
+    - time.js
+    - system-stats.js
+    - fetch-json.js
+    - download-file.js
+    - surf.js
+    - web-search.js
+    - weather.js
+    - extract-pdf.js
+    - docx.js
+    - excel-reader.js
+    - ocr.js
+    - save-docx.js
+    - chart.js
+
+# FreeBSD has no Docker: skills run in the soft sandbox — the Node.js
+# permission model plus the egress guard, which applies the same SSRF rules
+# as web_fetch to whatever a skill fetches.
+sandbox:
+  useDocker: false
+  timeoutMs: 60000
+  egress:
+    mode: guard
+    allowPrivateHosts: false
+
+security:
+  lethalTrifecta:
+    enabled: true
+    action: block

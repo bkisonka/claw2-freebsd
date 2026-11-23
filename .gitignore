@@ -1,0 +1,9 @@
+# What make pkg and make jail leave behind.
+/dist/
+/work/
+# What the installers are given: a package or a template fetched next to
+# the checkout.
+/*.pkg
+/*.pkg.sha256
+/*.txz
+/*.txz.sha256

@@ -1,0 +1,16 @@
+claw2 — a personal AI agent you host yourself
+
+It works with the language-model provider of your choice and keeps
+conversations, files and long-term memory on your own machine. Beyond its
+built-in tools it delegates to skills: small Node.js scripts the agent can
+write itself and run after your confirmation.
+
+On FreeBSD this port runs the gateway natively (no Docker): the gateway,
+the web interface and the mobile web client, with the skills in the soft
+sandbox — the Node.js permission model plus the egress guard. Local ONNX
+embeddings and the privacy-OCR and SIP sidecars are not available here.
+
+This port lives outside the official ports tree on purpose: its build
+fetches the application's npm dependencies from the registry instead of
+listing them as distfiles. Source of the application and of this packaging:
+WWW.

@@ -1,0 +1,90 @@
+#!/bin/sh
+
+# PROVIDE: claw2
+# REQUIRE: NETWORKING syslogd
+# BEFORE:  LOGIN
+# KEYWORD: shutdown
+
+# Service script of the claw2 gateway. The port installs it as
+# %%PREFIX%%/etc/rc.d/claw2. Settings live in /etc/rc.conf (or
+# /etc/rc.conf.d/claw2):
+#
+#   claw2_enable="YES"                        run the gateway at boot
+#   claw2_user="claw2"                        runs as this user
+#   claw2_home="%%PREFIX%%/share/claw2"             the application tree
+#   claw2_config="%%PREFIX%%/etc/claw2/claw2.yaml"   its configuration
+#   claw2_env_file="%%PREFIX%%/etc/claw2/claw2.env"  its keys, KEY=value
+#   claw2_log="/var/log/claw2.log"            the gateway's output
+#   claw2_pidfile="/var/run/claw2/claw2.pid"
+#   claw2_homedir="/var/db/claw2"             HOME of the service user
+
+. /etc/rc.subr
+
+name="claw2"
+rcvar="${name}_enable"
+load_rc_config "${name}"
+
+: "${claw2_enable:=NO}"
+: "${claw2_user:=claw2}"
+: "${claw2_group:=${claw2_user}}"
+: "${claw2_home:=%%PREFIX%%/share/claw2}"
+: "${claw2_config:=%%PREFIX%%/etc/claw2/claw2.yaml}"
+: "${claw2_env_file:=%%PREFIX%%/etc/claw2/claw2.env}"
+: "${claw2_log:=/var/log/claw2.log}"
+: "${claw2_pidfile:=/var/run/claw2/claw2.pid}"
+# HOME of the service user. Not looked up in the password file: pkg(8)
+# creates the account with /nonexistent, and the gateway keeps caches
+# and keys under its HOME.
+: "${claw2_homedir:=/var/db/claw2}"
+# The SQLite vector search extension (databases/sqlite-ext-vec). The npm
+# package of the application has no FreeBSD binary and cannot name it.
+: "${claw2_sqlite_vec:=/usr/local/libexec/sqlite-ext/vec0.so}"
+
+command="%%PREFIX%%/bin/node"
+procname="%%PREFIX%%/bin/node"
+pidfile="${claw2_pidfile}"
+start_cmd="${name}_start"
+
+claw2_start() {
+	if [ ! -f "${claw2_config}" ]; then
+		err 1 "${claw2_config} is missing: copy the sample next to it and put your settings in it"
+	fi
+	# The gateway writes its configuration itself: the web interface saves
+	# the settings into it, the allowlist of the skills to begin with — as
+	# it does in the Docker delivery, where the file is the service's own.
+	# Only the keys stay root's: they are in claw2_env_file.
+	chown "${claw2_user}:${claw2_group}" "${claw2_config}"
+	# The keys are read here, as root, and handed to the gateway in its
+	# environment: the file never has to be readable by the service user —
+	# which matters most in a jail, where that user's id is whatever was
+	# free when the package was installed. The gateway's own dotenv() does
+	# not override what is already set.
+	if [ -s "${claw2_env_file}" ]; then
+		set -a
+		. "${claw2_env_file}"
+		set +a
+	fi
+	install -d -o "${claw2_user}" -g "${claw2_group}" "$(dirname "${claw2_pidfile}")" "${claw2_homedir}"
+	if [ ! -e "${claw2_log}" ]; then
+		install -m 0640 -o root -g "${claw2_group}" /dev/null "${claw2_log}"
+	fi
+	cd "${claw2_home}" || err 1 "cannot enter ${claw2_home}"
+
+	# daemon(8) supervises: it drops to the service user, writes the child's
+	# pid file and keeps the child's output in the log. The gateway resolves
+	# its skills and state relative to the working directory, hence the cd.
+	/usr/sbin/daemon -u "${claw2_user}" -p "${claw2_pidfile}" \
+		-o "${claw2_log}" -t "${name}" \
+		/usr/bin/env \
+			PATH=/sbin:/bin:/usr/sbin:/usr/bin:%%PREFIX%%/sbin:%%PREFIX%%/bin \
+			HOME="${claw2_homedir}" \
+			NODE_ENV=production \
+			CLAW2_CONFIG_PATH="${claw2_config}" \
+			CLAW2_SQLITE_VEC_PATH="${claw2_sqlite_vec}" \
+			CLAW2_STATIC_PATH="${claw2_home}/web/dist" \
+			CLAW2_PWA_PATH="${claw2_home}/pwa/dist" \
+			CLAW2_WIKI_PATH="${claw2_home}/wiki" \
+			"${command}" dist/gateway/cli.js
+}
+
+run_rc_command "$1"

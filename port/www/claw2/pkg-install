@@ -1,0 +1,30 @@
+#!/bin/sh
+# Runs when the package is installed or upgraded — twice, as pkg(8) runs
+# this script: with PRE-INSTALL before its files are unpacked, with
+# POST-INSTALL after.
+#
+# The service account has to exist by the time the files are: they are its.
+# The id is whatever is free on this system: a port outside the official
+# tree has no number reserved in the tree's registries, and a fixed one
+# could collide with an account of a port that has.
+#
+# After the files are in, the tree is made the account's for certain:
+# pkg(8) sets the ownership of a directory only where it created it itself,
+# and keeps whatever is there otherwise — a directory it made as a parent
+# of an unpacked file, or one left by the previous version.
+#
+# $PKG_PREFIX is where pkg(8) installs the package.
+
+case "$2" in
+PRE-INSTALL)
+	pw groupshow claw2 >/dev/null 2>&1 || pw groupadd claw2
+	pw usershow claw2 >/dev/null 2>&1 ||
+		pw useradd claw2 -g claw2 -M 0755 -d /var/db/claw2 -s /usr/sbin/nologin
+	;;
+POST-INSTALL)
+	chown -R claw2:claw2 "$PKG_PREFIX/share/claw2"
+	for dir in /var/db/claw2 /var/run/claw2; do
+		[ -d "$dir" ] && chown claw2:claw2 "$dir"
+	done
+	;;
+esac
