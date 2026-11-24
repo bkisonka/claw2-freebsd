@@ -61,19 +61,20 @@ EOF
 exec)
 	jexec "$name" /bin/sh -c "$3"
 	;;
+	# one* — starting or stopping a jail now does not depend on jail_enable,
+	# on whether this host starts its jails at boot at all: the plain
+	# commands refuse to run where it is not YES.
 start)
-	# onestart: starting the jail now does not depend on jail_enable, on
-	# whether this host starts its jails at boot at all.
 	service jail onestart "$name" || die "cannot start the jail $name"
 	# The rc script reports a jail that failed to start — and exits 0.
 	jls -j "$name" >/dev/null 2>&1 ||
 		die "the jail $name is not running — see /var/log/jail_${name}_console.log"
-	;;
+;;
 stop)
-	service jail stop "$name"
-	;;
+	service jail onestop "$name"
+;;
 remove)
-	service jail stop "$name" 2>/dev/null || true
+	service jail onestop "$name" 2>/dev/null || true
 	jls -j "$name" >/dev/null 2>&1 && die "the jail $name is still running"
 	path=$(sed -n 's/^    path = "\(.*\)";$/\1/p' "$conf" 2>/dev/null)
 	rm -f "$conf"
