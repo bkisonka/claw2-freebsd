@@ -129,6 +129,10 @@ gateway key; the mobile client is under `/pwa/`, the user guide under
 - **Configuration.** `etc/claw2/claw2.yaml` is the application's
   configuration, as in [the project](https://github.com/bkisonka/claw2),
   with FreeBSD defaults: skills in the soft sandbox, long-term memory off.
+  The sample names no model server: `llm.baseURL` is commented out, and the
+  gateway then asks `127.0.0.1:1234` — where LM Studio listens on a
+  desktop, and nothing in a jail. Set it: `https://api.openai.com/v1` for
+  OpenAI, the address of your own server for a local model.
   The service makes the file its own when it starts — the web interface
   saves its settings into it. The keys never go into it: `apiKey:
   env:OPENAI_API_KEY` takes them from the environment the service provides.

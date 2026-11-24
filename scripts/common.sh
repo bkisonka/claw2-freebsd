@@ -216,6 +216,8 @@ claw2 is installed in the jail $JAIL_NAME.
      cp $etc/claw2.yaml.sample $etc/claw2.yaml
    The service makes the file its own when it starts: the web interface
    saves its settings into it.
+   Set llm.baseURL: left out, the gateway asks a model server on this
+   machine at 127.0.0.1:1234. For OpenAI: https://api.openai.com/v1
 
 2. Keys — into $etc/claw2.env, as root, mode 0600 (the service reads it and
    hands the values to the gateway; nobody else needs access):
